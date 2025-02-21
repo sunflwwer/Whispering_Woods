@@ -26,7 +26,7 @@ public class Flower : MonoBehaviour
             }
             else
             {
-                Debug.LogError("Canvas 안에 'Flower' 텍스트 오브젝트를 찾을 수 없습니다.");
+                //Debug.LogError("Canvas 안에 'Flower' 텍스트 오브젝트를 찾을 수 없습니다.");
             }
         }
 
@@ -48,7 +48,7 @@ public class Flower : MonoBehaviour
             }
             else
             {
-                Debug.LogError("Flower group 오브젝트를 ETC 그룹에서 찾을 수 없습니다.");
+                //Debug.LogError("Flower group 오브젝트를 ETC 그룹에서 찾을 수 없습니다.");
             }
         }
         else
@@ -94,11 +94,51 @@ public class Flower : MonoBehaviour
     {
         flowerCount = Mathf.Max(0, flowerCount - 1); // 개수가 0 이하로 내려가지 않게
         UpdateFlowerText();
-        ActivateNextLightFlower(); // 순차적으로 활성화
+        ActivateNextLightFlower(); // 랜덤으로 활성화
+
+        if (flowerCount == 0)
+        {
+            ToggleGravestoneObjects(); // Gravestone 오브젝트 상태 전환
+        }
 
         interactionUI?.SetActive(false); // 상호작용 UI 비활성화
         Destroy(gameObject); // 꽃 오브젝트 삭제
     }
+
+    // Gravestone group 안의 오브젝트 상태 전환
+    private void ToggleGravestoneObjects()
+    {
+        GameObject etcGroup = GameObject.Find("ETC");
+        if (etcGroup != null)
+        {
+            Transform gravestoneGroup = etcGroup.transform.Find("Gravestone group");
+            if (gravestoneGroup != null)
+            {
+                GameObject rock04 = gravestoneGroup.Find("PT_Menhir_Rock_04")?.gameObject;
+                GameObject rock044 = gravestoneGroup.Find("PT_Menhir_Rock_044")?.gameObject;
+
+                if (rock04 != null && rock044 != null)
+                {
+                    rock04.SetActive(true); // PT_Menhir_Rock_04 활성화
+                    rock044.SetActive(false); // PT_Menhir_Rock_044 비활성화
+                    Debug.Log("PT_Menhir_Rock_04 활성화, PT_Menhir_Rock_044 비활성화 완료");
+                }
+                else
+                {
+                    Debug.LogError("Gravestone group 내에서 필요한 오브젝트를 찾을 수 없습니다.");
+                }
+            }
+            else
+            {
+                Debug.LogError("Gravestone group 오브젝트를 ETC 그룹에서 찾을 수 없습니다.");
+            }
+        }
+        else
+        {
+            Debug.LogError("ETC 그룹 오브젝트를 찾을 수 없습니다.");
+        }
+    }
+
 
     private void UpdateFlowerText()
     {

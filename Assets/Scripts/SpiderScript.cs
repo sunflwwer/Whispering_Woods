@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using Sample;
+using TMPro; // TextMeshPro 사용
 
 public class SpiderScript : MonoBehaviour
 {
@@ -34,6 +35,13 @@ public class SpiderScript : MonoBehaviour
 
     private bool isPlayerDead = false; // 플레이어가 죽었는지 여부
 
+    // 죽은 거미 카운트를 위한 전역 변수
+    private static int totalSpidersKilled = 0;
+    private TMP_Text spiderText; // Canvas에서 Spider 텍스트 추적
+
+    // Gravestone 오브젝트 참조 추가
+    private GameObject gravestone03;
+    private GameObject gravestone033;
 
 
     void Start()
@@ -101,6 +109,36 @@ public class SpiderScript : MonoBehaviour
         originalAttackRange = attackRange; // 원래 공격 범위 저장
 
         CheckNightState(); // 시작 시 밤 상태 확인
+
+        // Spider 텍스트 초기화
+        GameObject canvasObject = GameObject.Find("Canvas");
+        if (canvasObject != null)
+        {
+            GameObject spiderTextObject = canvasObject.transform.Find("Spider")?.gameObject;
+            if (spiderTextObject != null)
+            {
+                spiderText = spiderTextObject.GetComponent<TMP_Text>();
+                spiderText.text = $"Spider = {totalSpidersKilled}"; // 초기값 설정
+            }
+        }
+
+        // Gravestone 그룹 내의 오브젝트 찾기
+        GameObject etcGroup = GameObject.Find("ETC");
+        if (etcGroup != null)
+        {
+            Transform gravestoneGroup = etcGroup.transform.Find("Gravestone group");
+            if (gravestoneGroup != null)
+            {
+                gravestone03 = gravestoneGroup.Find("PT_Menhir_Rock_03")?.gameObject;
+                gravestone033 = gravestoneGroup.Find("PT_Menhir_Rock_033")?.gameObject;
+
+                if (gravestone03 == null || gravestone033 == null)
+                {
+                    Debug.LogError("Gravestone 오브젝트들을 찾을 수 없습니다.");
+                }
+            }
+        }
+
     }
 
 
@@ -319,7 +357,39 @@ public class SpiderScript : MonoBehaviour
             healthCanvas.gameObject.SetActive(false);
         }
 
+
+        // 거미 사망 시 카운트 증가 및 텍스트 업데이트
+        totalSpidersKilled++;
+        UpdateSpiderText();
+
+        // 5마리 이상 죽었을 때 Gravestone 오브젝트 전환
+        if (totalSpidersKilled >= 5)
+        {
+            ToggleGravestoneObjects();
+        }
+
+
         StartCoroutine(RemoveSpiderAfterDeath());
+    }
+
+    private void ToggleGravestoneObjects()
+    {
+        if (gravestone03 != null && gravestone033 != null)
+        {
+            gravestone03.SetActive(false); // PT_Menhir_Rock_03 비활성화
+            gravestone033.SetActive(true); // PT_Menhir_Rock_033 활성화
+            Debug.Log("PT_Menhir_Rock_03 비활성화, PT_Menhir_Rock_033 활성화 완료");
+        }
+    }
+
+
+    // Spider 텍스트 업데이트
+    private void UpdateSpiderText()
+    {
+        if (spiderText != null)
+        {
+            spiderText.text = $"Spider = {totalSpidersKilled}";
+        }
     }
 
     private IEnumerator RemoveSpiderAfterDeath()
@@ -336,4 +406,6 @@ public class SpiderScript : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
+
 }

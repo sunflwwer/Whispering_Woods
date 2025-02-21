@@ -31,11 +31,14 @@ namespace Sample
         [SerializeField] private float Speed = 3;
         [SerializeField] private float sprintSpeed = 5.5f;
 
-        [SerializeField] private Transform cameraTransform;
-        [SerializeField] private Transform playerBody;
+        /*        [SerializeField] private Transform cameraTransform;
+                [SerializeField] private Transform playerBody;
+                [SerializeField] private float mouseSensitivity = 100f;
+
+                private float xRotation = 0f;*/
+
         [SerializeField] private float mouseSensitivity = 100f;
 
-        private float xRotation = 0f;
 
         private bool isJumping = false;
         [SerializeField] private float jumpForce = 4.5f;
@@ -56,6 +59,16 @@ namespace Sample
 
         private bool isDead = false; // 플레이어가 죽었는지 여부
 
+        [SerializeField] private GameObject CinemachineCameraTarget; // 카메라가 따라갈 목표
+        [SerializeField] private float TopClamp = 70.0f; // 위로 이동 제한
+        [SerializeField] private float BottomClamp = -30.0f; // 아래로 이동 제한
+        [SerializeField] private float CameraAngleOverride = 0.0f; // 카메라 회전 각도 오버라이드
+        [SerializeField] private bool LockCameraPosition = false; // 카메라 위치 잠금
+
+        private float _cinemachineTargetYaw;
+        private float _cinemachineTargetPitch;
+
+
 
         void Start()
         {
@@ -64,6 +77,8 @@ namespace Sample
 
             initialPosition = this.transform.position;
             initialRotation = this.transform.rotation;
+
+            _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
 
             try
             {
@@ -79,12 +94,7 @@ namespace Sample
             }
             catch (Exception e)
             {
-                Debug.LogError("Error finding HP text: " + e.Message);
-            }
-
-            if (cameraTransform == null)
-            {
-                cameraTransform = Camera.main.transform;
+                //Debug.LogError("Error finding HP text: " + e.Message);
             }
 
             Cursor.lockState = CursorLockMode.Locked;
@@ -92,12 +102,13 @@ namespace Sample
 
         void Update()
         {
-            HandleMouseLook();
+
             STATUS();
             MOVE();
             HandleKeyActions();
             HandlePush(); // 추가된 돌 밀기 로직
             Respawn();
+            CameraRotation(); // 새로운 카메라 회전 로직
 
             if (HP <= 0 && !DissolveFlg)
             {
@@ -109,6 +120,12 @@ namespace Sample
                 DissolveFlg = false;
             }
         }
+
+        void FixedUpdate()
+        {
+            CheckGrounded(); // 물리 연산 최적화
+        }
+
 
         private const int Dissolve = 1;
         private const int Attack = 2;
@@ -148,39 +165,36 @@ namespace Sample
             {
                 PlayerStatus[Surprised] = false;
             }
+
         }
 
-        private void HandleMouseLook()
+        private void CameraRotation()
         {
-            float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
-            float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
+            if (!LockCameraPosition)
+            {
+                float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
+                float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
-            playerBody.Rotate(Vector3.up * mouseX);
+                _cinemachineTargetYaw += mouseX;
+                _cinemachineTargetPitch -= mouseY;
 
-            xRotation -= mouseY;
-            xRotation = Mathf.Clamp(xRotation, -90f, 60f);
+                _cinemachineTargetYaw = Mathf.Clamp(_cinemachineTargetYaw, float.MinValue, float.MaxValue);
+                _cinemachineTargetPitch = Mathf.Clamp(_cinemachineTargetPitch, BottomClamp, TopClamp);
 
-            Vector3 targetCameraPosition = cameraTransform.localPosition;
-            float verticalOffset = Mathf.Lerp(0.5f, 4.0f, Mathf.InverseLerp(-90f, 60f, xRotation));
-            targetCameraPosition.y = verticalOffset;
-            targetCameraPosition.z = -3f;
-
-            cameraTransform.localPosition = targetCameraPosition;
-            cameraTransform.LookAt(playerBody.position + Vector3.up * 1.5f);
+                CinemachineCameraTarget.transform.rotation = Quaternion.Euler(
+                    _cinemachineTargetPitch + CameraAngleOverride,
+                    _cinemachineTargetYaw,
+                    0.0f
+                );
+            }
         }
-
         private void MOVE()
         {
-            if (isDead) return; // 플레이어가 죽었으면 이동 로직 실행 안 함
+            if (isDead) return;
 
             ApplyGravity();
 
-            float currentSpeed = Speed;
-
-            if (Input.GetKey(KeyCode.LeftShift))
-            {
-                currentSpeed = sprintSpeed;
-            }
+            float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? sprintSpeed : Speed;
 
             Vector3 inputDirection = new Vector3(
                 Input.GetAxis("Horizontal"),
@@ -192,7 +206,16 @@ namespace Sample
             {
                 inputDirection.Normalize();
 
-                Vector3 moveDirection = playerBody.forward * inputDirection.z + playerBody.right * inputDirection.x;
+                // 카메라 기준 방향으로 이동
+                Vector3 moveDirection = CinemachineCameraTarget.transform.forward * inputDirection.z +
+                                        CinemachineCameraTarget.transform.right * inputDirection.x;
+                moveDirection.y = 0f; // 수평 이동 유지
+
+                // 캐릭터가 이동 방향을 바라보도록 회전 추가
+                Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+
+                // 실제 이동 처리
                 Vector3 horizontalMove = moveDirection * currentSpeed;
                 MoveDirection = new Vector3(horizontalMove.x, MoveDirection.y, horizontalMove.z);
 
@@ -217,6 +240,8 @@ namespace Sample
             }
         }
 
+
+
         private void HandleKeyActions()
         {
             if (isDead) return; // 플레이어가 죽었으면 공격 불가능
@@ -225,11 +250,12 @@ namespace Sample
             {
                 Anim.CrossFade(AttackState, 0.1f, 0, 0);
 
-                Vector3 rayStartPos = cameraTransform.position + Vector3.up * 0.2f; // 기존보다 0.2f 위에서 시작
+                // 플레이어 위치에서 시작
+                Vector3 rayStartPos = transform.position + Vector3.up * 1.0f; // 플레이어 위치에서 조금 위에서 시작 (1.0f 정도)
 
+                // 플레이어 기준 정면 방향으로 발사
+                Vector3 rayDirection = transform.forward; // 플레이어 기준 정면 방향
 
-                // Ray 방향 (살짝 아래로 조정)
-                Vector3 rayDirection = cameraTransform.forward + Vector3.down * 0.3f;
                 rayDirection.Normalize(); // 정규화
 
                 // Ray 거리
@@ -289,8 +315,12 @@ namespace Sample
         private void InteractWithFence()
         {
             float interactionDistance = 7.0f; // 문과의 상호작용 거리
-            Vector3 rayStartPos = cameraTransform.position; // 카메라 위치에서 시작
-            Vector3 rayDirection = cameraTransform.forward; // 플레이어가 바라보는 방향
+                                              // 플레이어 위치에서 시작
+            Vector3 rayStartPos = transform.position + Vector3.up * 1.0f; // 플레이어 위치에서 조금 위에서 시작 (1.0f 정도)
+
+            // 플레이어 기준 정면 방향으로 발사
+            Vector3 rayDirection = transform.forward; // 플레이어 기준 정면 방향
+
 
             Debug.DrawRay(rayStartPos, rayDirection * interactionDistance, Color.blue, 2.0f); // Ray를 시각적으로 확인
 
@@ -436,9 +466,6 @@ namespace Sample
         }
 
 
-
-
-
         private void ApplyGravity()
         {
             if (CheckGrounded())
@@ -456,23 +483,17 @@ namespace Sample
             }
             else
             {
-                if (verticalVelocity < 0)
-                {
-                    verticalVelocity += Physics.gravity.y * fallMultiplier * Time.deltaTime;
-                }
-                else
-                {
-                    verticalVelocity += Physics.gravity.y * Time.deltaTime;
-                }
+                verticalVelocity += Physics.gravity.y * (verticalVelocity < 0 ? fallMultiplier : 1) * Time.deltaTime;
             }
 
-            if (isJumping && verticalVelocity <= 0 && CheckGrounded())
+            if (isJumping && verticalVelocity <= 0)
             {
                 isJumping = false;
             }
 
             MoveDirection.y = verticalVelocity;
         }
+
 
         private bool CheckGrounded()
         {
@@ -481,13 +502,17 @@ namespace Sample
                 return true;
             }
 
-            Ray ray = new Ray(this.transform.position + Vector3.up * 0.1f, Vector3.down);
-            float range = isInWater ? 0.5f : 0.3f; // 물에서는 더 넓은 범위로 감지
-            Debug.DrawRay(ray.origin, ray.direction * range, Color.red);
+            // 바닥 감지를 위한 레이 시작 위치 및 길이 수정
+            Vector3 rayOrigin = transform.position + Vector3.up * 0.1f; // 플레이어 위치에서 약간 위쪽으로 발사
+            Vector3 rayDirection = Vector3.down; // 아래 방향으로 쏘기
+            float range = isInWater ? 0.7f : 0.4f; // 물 속에서는 좀 더 넓은 범위 감지
 
-            // Trigger Collider를 무시하도록 QueryTriggerInteraction.Ignore 설정
-            return Physics.Raycast(ray, range, ~0, QueryTriggerInteraction.Ignore);
+            Debug.DrawRay(rayOrigin, rayDirection * range, Color.green); // 디버깅용 시각화
+
+            // 트리거 충돌 무시하고 바닥 감지
+            return Physics.Raycast(rayOrigin, rayDirection, range, ~0, QueryTriggerInteraction.Ignore);
         }
+
 
         private void Respawn()
         {

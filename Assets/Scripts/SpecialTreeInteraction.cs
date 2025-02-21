@@ -40,7 +40,7 @@ public class SpecialTreeInteraction : MonoBehaviour
         }
         else
         {
-            Debug.LogError("SpecialTree 텍스트 오브젝트를 찾을 수 없습니다.");
+            //Debug.LogError("SpecialTree 텍스트 오브젝트를 찾을 수 없습니다.");
         }
 
         // 초기 Gravestone 상태 설정

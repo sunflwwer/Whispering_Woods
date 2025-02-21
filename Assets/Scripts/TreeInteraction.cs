@@ -24,7 +24,7 @@ public class TreeInteraction : MonoBehaviour
         }
         else
         {
-            Debug.LogError("Wood Text (Canvas/Wood) not found in the scene.");
+            //Debug.LogError("Wood Text (Canvas/Wood) not found in the scene.");
         }
     }
 
