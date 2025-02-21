@@ -11,7 +11,6 @@ public class Flower : MonoBehaviour
     private TMP_Text flowerText; // Canvas의 Flower 텍스트
 
     private List<GameObject> lightFlowers = new List<GameObject>(); // LightFlower 오브젝트 리스트
-    private int nextLightFlowerIndex = 0; // 순차 활성화를 위한 인덱스
 
     private void Start()
     {

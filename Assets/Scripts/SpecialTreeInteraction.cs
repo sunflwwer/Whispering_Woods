@@ -15,6 +15,7 @@ public class SpecialTreeInteraction : MonoBehaviour
     private bool isPlayerNearby = false;
     private GameObject player;
 
+    private static int globalTreeCounter = 0; // 모든 나무가 공유하는 글로벌 카운터
     private TextMeshProUGUI specialTreeCounter; // SpecialTree 텍스트 객체
 
 
@@ -34,13 +35,32 @@ public class SpecialTreeInteraction : MonoBehaviour
             specialTreeCounter = counterTextObject.GetComponent<TextMeshProUGUI>();
             if (specialTreeCounter != null)
             {
-                specialTreeCounter.text = "0"; // 초기 값 설정
+                specialTreeCounter.text = globalTreeCounter.ToString(); // 초기 값 설정
             }
         }
         else
         {
             Debug.LogError("SpecialTree 텍스트 오브젝트를 찾을 수 없습니다.");
         }
+
+        // 초기 Gravestone 상태 설정
+        GameObject etcGroup = GameObject.Find("ETC");
+        if (etcGroup != null)
+        {
+            Transform gravestoneGroup = etcGroup.transform.Find("Gravestone group");
+            if (gravestoneGroup != null)
+            {
+                GameObject rock01 = gravestoneGroup.Find("PT_Menhir_Rock_01")?.gameObject;
+                GameObject rock011 = gravestoneGroup.Find("PT_Menhir_Rock_011")?.gameObject;
+
+                if (rock01 != null && rock011 != null)
+                {
+                    rock01.SetActive(true);  // 처음에는 활성화
+                    rock011.SetActive(false); // 처음에는 비활성화
+                }
+            }
+        }
+
 
     }
 
@@ -140,13 +160,18 @@ public class SpecialTreeInteraction : MonoBehaviour
                         child.gameObject.SetActive(true); // 해당 오브젝트 활성화
                         Debug.Log($"{child.gameObject.name} 오브젝트가 활성화되었습니다.");
 
-                        // SpecialTree 텍스트 카운터 증가
+                        globalTreeCounter++; // 전역 카운터 증가
                         if (specialTreeCounter != null)
                         {
-                            int currentCount = int.Parse(specialTreeCounter.text);
-                            currentCount++;
-                            specialTreeCounter.text = currentCount.ToString();
+                            specialTreeCounter.text = globalTreeCounter.ToString();
                         }
+
+                        // 카운터가 3이 되었을 때 Gravestone 오브젝트 변경
+                        if (globalTreeCounter == 3)
+                        {
+                            ActivateGravestoneObject();
+                        }
+
                     }
                 }
             }
@@ -175,6 +200,42 @@ public class SpecialTreeInteraction : MonoBehaviour
 
         Destroy(gameObject);
     }
+
+    // Gravestone 그룹 내 오브젝트 상태 변경 메서드
+    private void ActivateGravestoneObject()
+    {
+        GameObject etcGroup = GameObject.Find("ETC");
+        if (etcGroup != null)
+        {
+            Transform gravestoneGroup = etcGroup.transform.Find("Gravestone group");
+            if (gravestoneGroup != null)
+            {
+                GameObject rock01 = gravestoneGroup.Find("PT_Menhir_Rock_01")?.gameObject;
+                GameObject rock011 = gravestoneGroup.Find("PT_Menhir_Rock_011")?.gameObject;
+
+                if (rock01 != null && rock011 != null)
+                {
+                    rock01.SetActive(false);  // 비활성화
+                    rock011.SetActive(true);  // 활성화
+
+                    Debug.Log("Gravestone 오브젝트 상태 변경 완료: PT_Menhir_Rock_01 비활성화, PT_Menhir_Rock_011 활성화");
+                }
+                else
+                {
+                    Debug.LogError("Gravestone group 내에 필요한 오브젝트를 찾을 수 없습니다.");
+                }
+            }
+            else
+            {
+                Debug.LogError("ETC 그룹 내에 Gravestone group을 찾을 수 없습니다.");
+            }
+        }
+        else
+        {
+            Debug.LogError("ETC 그룹을 찾을 수 없습니다.");
+        }
+    }
+
 
 
 }
