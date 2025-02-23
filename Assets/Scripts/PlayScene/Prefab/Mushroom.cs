@@ -39,20 +39,24 @@ public class Mushroom : MonoBehaviour
         }
 
         // Canvas에서 Mushroom 텍스트 찾기 및 초기화
-        GameObject canvasObject = GameObject.Find("Canvas");
-        if (canvasObject != null)
+        GameObject mushroomTextObject = GameObject.Find("Canvas/Mushroom");
+        if (mushroomTextObject != null)
         {
-            GameObject mushroomTextObject = canvasObject.transform.Find("Mushroom")?.gameObject;
-            if (mushroomTextObject != null)
+            mushroomText = mushroomTextObject.GetComponent<TextMeshProUGUI>();
+            if (mushroomText != null)
             {
-                mushroomText = mushroomTextObject.GetComponent<TMP_Text>();
                 mushroomText.text = $"Mushroom = {totalMushroomsConsumed}"; // 초기값 설정
             }
             else
             {
-               // Debug.LogError("Canvas 안에 'Mushroom' 텍스트 오브젝트를 찾을 수 없습니다.");
+                Debug.LogError("Mushroom 텍스트 컴포넌트를 찾을 수 없습니다.");
             }
         }
+        else
+        {
+            Debug.LogError("Canvas 안에 'Mushroom' 텍스트 오브젝트를 찾을 수 없습니다.");
+        }
+
 
         // Gravestone 그룹 내의 오브젝트 참조만 가져오기 (초기 활성화/비활성화 설정 제거)
         GameObject etcGroup = GameObject.Find("ETC");

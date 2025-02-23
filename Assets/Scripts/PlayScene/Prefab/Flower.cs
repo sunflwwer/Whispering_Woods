@@ -15,20 +15,24 @@ public class Flower : MonoBehaviour
     private void Start()
     {
         // Flower 텍스트 찾기
-        GameObject canvasObject = GameObject.Find("Canvas");
-        if (canvasObject != null)
+        GameObject flowerTextObject = GameObject.Find("Canvas/Flower");
+        if (flowerTextObject != null)
         {
-            GameObject flowerTextObject = canvasObject.transform.Find("Flower")?.gameObject;
-            if (flowerTextObject != null)
+            flowerText = flowerTextObject.GetComponent<TextMeshProUGUI>();
+            if (flowerText != null)
             {
-                flowerText = flowerTextObject.GetComponent<TMP_Text>();
-                flowerText.text = $"Flower = {flowerCount}";
+                flowerText.text = $"Flower = {flowerCount}"; // 초기 값 설정
             }
             else
             {
-                //Debug.LogError("Canvas 안에 'Flower' 텍스트 오브젝트를 찾을 수 없습니다.");
+                Debug.LogError("Flower 텍스트 컴포넌트를 찾을 수 없습니다.");
             }
         }
+        else
+        {
+            Debug.LogError("Canvas 안에 'Flower' 텍스트 오브젝트를 찾을 수 없습니다.");
+        }
+
 
         // ETC 그룹 내에서 Flower group 찾기
         GameObject etcGroup = GameObject.Find("ETC");

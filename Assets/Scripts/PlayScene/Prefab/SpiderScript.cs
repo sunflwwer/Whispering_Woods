@@ -111,16 +111,24 @@ public class SpiderScript : MonoBehaviour
         CheckNightState(); // 시작 시 밤 상태 확인
 
         // Spider 텍스트 초기화
-        GameObject canvasObject = GameObject.Find("Canvas");
-        if (canvasObject != null)
+        GameObject spiderTextObject = GameObject.Find("Canvas/Spider");
+        if (spiderTextObject != null)
         {
-            GameObject spiderTextObject = canvasObject.transform.Find("Spider")?.gameObject;
-            if (spiderTextObject != null)
+            spiderText = spiderTextObject.GetComponent<TextMeshProUGUI>();
+            if (spiderText != null)
             {
-                spiderText = spiderTextObject.GetComponent<TMP_Text>();
                 spiderText.text = $"Spider = {totalSpidersKilled}"; // 초기값 설정
             }
+            else
+            {
+                Debug.LogError("Spider 텍스트 컴포넌트를 찾을 수 없습니다.");
+            }
         }
+        else
+        {
+            Debug.LogError("Canvas 안에 'Spider' 텍스트 오브젝트를 찾을 수 없습니다.");
+        }
+
 
         // Gravestone 그룹 내의 오브젝트 찾기
         GameObject etcGroup = GameObject.Find("ETC");

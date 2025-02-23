@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI; // 추가
 
 namespace Sample
 {
@@ -24,9 +25,11 @@ namespace Sample
         [SerializeField] private SkinnedMeshRenderer[] MeshR;
         private float Dissolve_value = 1;
         private bool DissolveFlg = false;
+
+        [SerializeField] private Slider hpSlider; // HP Slider 참조 추가
+
         private const int maxHP = 100;
-        private int HP = 50;
-        private TextMeshProUGUI HP_text;
+        private int HP = 100;
 
         [SerializeField] private float Speed = 3;
         [SerializeField] private float sprintSpeed = 5.5f;
@@ -80,25 +83,16 @@ namespace Sample
 
             _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
 
-            try
+            if (hpSlider != null)
             {
-                HP_text = GameObject.Find("Canvas/HP").GetComponent<TextMeshProUGUI>();
-                if (HP_text != null)
-                {
-                    HP_text.text = "HP " + HP.ToString();
-                }
-                else
-                {
-                    Debug.LogError("HP_text is null. Please check the Canvas/HP setup.");
-                }
-            }
-            catch (Exception e)
-            {
-                //Debug.LogError("Error finding HP text: " + e.Message);
+                hpSlider.maxValue = maxHP;
+                hpSlider.value = HP; // 시작 시 체력 설정
             }
 
             Cursor.lockState = CursorLockMode.Locked;
         }
+
+
 
         void Update()
         {
@@ -120,6 +114,8 @@ namespace Sample
                 DissolveFlg = false;
             }
         }
+
+
 
         void FixedUpdate()
         {
@@ -362,6 +358,7 @@ namespace Sample
         }
 
 
+
         private void Die()
         {
             isDead = true;
@@ -558,16 +555,9 @@ namespace Sample
         public void Heal(int amount)
         {
             HP = Mathf.Min(HP + amount, maxHP);
-
-            if (HP_text != null)
-            {
-                HP_text.text = "HP " + HP.ToString();
-            }
-            else
-            {
-                Debug.LogError("HP_text is null. Cannot update HP text.");
-            }
+            UpdateHPUI(); // 체력 슬라이더 업데이트
         }
+
 
         public int GetCurrentHP()
         {
@@ -576,11 +566,12 @@ namespace Sample
 
         private void UpdateHPUI()
         {
-            if (HP_text != null)
+            if (hpSlider != null)
             {
-                HP_text.text = "HP " + HP.ToString();
+                hpSlider.value = HP; // 슬라이더로 체력 업데이트
             }
         }
+
 
 
         private void OnTriggerEnter(Collider other)
