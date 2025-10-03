@@ -179,7 +179,7 @@ GameObject:
   - component: {fileID: 6419187236850804161}
   - component: {fileID: 2256188382494855856}
   - component: {fileID: 5320539882741733345}
-  - component: {fileID: 6964975939319974478}
+  - component: {fileID: 1896497088636195895}
   m_Layer: 0
   m_Name: PT_Fruit_Tree_01_apples
   m_TagString: Untagged
@@ -255,7 +255,7 @@ CapsuleCollider:
   m_Height: 4.98
   m_Direction: 1
   m_Center: {x: -0.01, y: 2.12, z: -0.06}
---- !u!136 &6964975939319974478
+--- !u!136 &1896497088636195895
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

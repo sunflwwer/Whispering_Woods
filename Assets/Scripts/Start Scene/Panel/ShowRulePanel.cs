@@ -1,8 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using UnityEngine.EventSystems;
+using TMPro;
 
-public class ShowRulePanel : MonoBehaviour
+public class ShowRulePanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
 {
     public List<GameObject> rulePanels; // RulePanel 1, 2, 3 연결 (리스트로 관리)
     public Button ruleButton;           // Rule 버튼 연결
@@ -13,7 +15,13 @@ public class ShowRulePanel : MonoBehaviour
     private int currentPanelIndex = 0;  // 현재 활성화된 패널 인덱스
     private bool isPanelActive = false; // 패널이 활성화되어 있는지 확인
 
-    void Start()
+    // 버튼 색상 관리
+    private TextMeshProUGUI buttonText;
+    private Color normalColor = new Color(0f, 0f, 0f); // 검정색
+    private Color highlightedColor = new Color(0.3f, 0.3f, 0.3f); // 회색
+    private Color pressedColor = new Color(0f, 0f, 0f); // 밝은 회색
+
+    private void Start()
     {
         // 게임 시작 시 모든 패널과 버튼 비활성화
         foreach (var panel in rulePanels)
@@ -44,6 +52,13 @@ public class ShowRulePanel : MonoBehaviour
         if (nextButton != null)
         {
             nextButton.onClick.AddListener(ShowNextPanel);
+        }
+
+        // 버튼 텍스트 가져오기
+        buttonText = ruleButton.GetComponentInChildren<TextMeshProUGUI>();
+        if (buttonText != null)
+        {
+            buttonText.color = normalColor;
         }
     }
 
@@ -134,5 +149,38 @@ public class ShowRulePanel : MonoBehaviour
 
         // CloseButton 항상 위로 유지
         closeButton.transform.SetAsLastSibling();
+    }
+
+    // 색상 변경 이벤트 처리 (IPointer 인터페이스 구현)
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (buttonText != null)
+        {
+            buttonText.color = highlightedColor;
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (buttonText != null)
+        {
+            buttonText.color = normalColor;
+        }
+    }
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        if (buttonText != null)
+        {
+            buttonText.color = pressedColor;
+        }
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        if (buttonText != null)
+        {
+            buttonText.color = highlightedColor;
+        }
     }
 }

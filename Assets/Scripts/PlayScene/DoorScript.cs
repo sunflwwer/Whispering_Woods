@@ -12,6 +12,13 @@ public class DoorScript : MonoBehaviour
 
     [SerializeField] private bool isRightDoor = true; // 오른쪽 문인지 여부 (true = Right, false = Left)
 
+    [SerializeField] private AudioClip openSound; // 문 열리는 소리
+    [SerializeField] private AudioClip closeSound; // 문 닫히는 소리
+    [SerializeField][Range(0f, 1f)] private float soundVolume = 1.0f; // 소리 볼륨
+
+    private AudioSource audioSource; // 오디오 소스
+
+
     private void Start()
     {
         // 오른쪽 문이면 60도, 왼쪽 문이면 -60도 설정
@@ -19,7 +26,12 @@ public class DoorScript : MonoBehaviour
 
         // 강제로 Y 회전을 0도로 설정
         transform.localRotation = Quaternion.Euler(0, closedRotationY, 0);
+
+        // AudioSource 컴포넌트를 추가하고 설정
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false; // 시작 시 자동 재생 X
     }
+
 
     public static void ToggleAllDoors()
     {
@@ -37,6 +49,9 @@ public class DoorScript : MonoBehaviour
     private IEnumerator RotateDoor()
     {
         isAnimating = true; // 애니메이션 시작
+
+        // 소리 재생
+        PlayDoorSound(isOpen); // 문 상태에 따라 열기/닫기 소리 재생
 
         float startRotationY = transform.localEulerAngles.y;
         float targetRotationY = isOpen ? openRotationY : closedRotationY; // 목표 회전값 설정
@@ -56,4 +71,16 @@ public class DoorScript : MonoBehaviour
         transform.localRotation = Quaternion.Euler(0, targetRotationY, 0);
         isAnimating = false; // 애니메이션 종료
     }
+    private void PlayDoorSound(bool opening)
+    {
+        if (audioSource != null)
+        {
+            AudioClip clipToPlay = opening ? openSound : closeSound;
+            if (clipToPlay != null)
+            {
+                audioSource.PlayOneShot(clipToPlay, soundVolume); // 소리 재생
+            }
+        }
+    }
+
 }

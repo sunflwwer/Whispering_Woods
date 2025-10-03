@@ -183,10 +183,12 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Push 'V' to remove
+  m_text: "'F'\uD0A4\uB97C \uBE60\uB974\uAC8C 5\uBC88 \uB20C\uB7EC\n\uC545\uC758\uAF43\uC744
+    \uC81C\uAC70\uD558\uC138\uC694!"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 5699f3785f4370146922051b62f715af, type: 2}
+  m_sharedMaterial: {fileID: 905993086113801565, guid: 5699f3785f4370146922051b62f715af,
+    type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -217,7 +219,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -633,7 +635,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   interactionUI: {fileID: 3889333824717715453}
-  interactKey: v
+  interactKey: f
+  flowerConsumeSound: {fileID: 8300000, guid: b0e62ed71b1538648b719821f4f63b4c, type: 3}
+  flowerConsumeVolume: 0.5
+  interactionSound: {fileID: 8300000, guid: 8b23b175a78d6b5458322e3a6c9905d0, type: 3}
+  interactionSoundVolume: 0.7
 --- !u!1 &8817714582870616325
 GameObject:
   m_ObjectHideFlags: 0

@@ -42,7 +42,6 @@ public class ButtonSceneLoader : MonoBehaviour, IPointerEnterHandler, IPointerEx
         }
     }
 
-
     void OnEnable()
     {
         if (button != null)
@@ -85,30 +84,30 @@ public class ButtonSceneLoader : MonoBehaviour, IPointerEnterHandler, IPointerEx
     // 씬 로드 전 페이드 아웃 후 씬 전환
     IEnumerator FadeOutAndLoadScene()
     {
+        fadeImage.gameObject.SetActive(true); // 페이드 아웃 전에 이미지 활성화
         yield return StartCoroutine(FadeOut());
-        //yield return new WaitForSeconds(2f); // 페이드 아웃 후 1초 대기
         SceneManager.LoadScene("Play Scene");
     }
 
-/*    // 페이드 인 효과 (씬 로드 후)
+    // 페이드 인 효과 (씬 로드 후)
     IEnumerator FadeIn()
     {
         float elapsedTime = 0f;
         Color color = fadeImage.color;
-        color.a = 1f; // 완전히 투명하지 않게 시작
+        color.a = 1f; // 시작 시 불투명
         fadeImage.color = color;
 
         while (elapsedTime < fadeDuration)
         {
             elapsedTime += Time.deltaTime;
-            color.a = 1f - (elapsedTime / fadeDuration);
+            color.a = 1f - (elapsedTime / fadeDuration); // 점차 투명해짐
             fadeImage.color = color;
             yield return null;
         }
 
-        color.a = 0f;
+        color.a = 0f; // 완전 투명
         fadeImage.color = color;
-    }*/
+    }
 
     // 페이드 아웃 효과 (씬 전환 전)
     IEnumerator FadeOut()
@@ -121,12 +120,12 @@ public class ButtonSceneLoader : MonoBehaviour, IPointerEnterHandler, IPointerEx
         while (elapsedTime < fadeDuration)
         {
             elapsedTime += Time.deltaTime;
-            color.a = elapsedTime / fadeDuration;
+            color.a = elapsedTime / fadeDuration; // 점점 불투명해짐
             fadeImage.color = color;
             yield return null;
         }
 
-        color.a = 1f;
+        color.a = 1f; // 완전 불투명
         fadeImage.color = color;
     }
 }

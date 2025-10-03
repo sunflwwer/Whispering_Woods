@@ -35,13 +35,24 @@ public class SpiderScript : MonoBehaviour
 
     private bool isPlayerDead = false; // 플레이어가 죽었는지 여부
 
-    // 죽은 거미 카운트를 위한 전역 변수
-    private static int totalSpidersKilled = 0;
     private TMP_Text spiderText; // Canvas에서 Spider 텍스트 추적
+    private TMP_Text gravestoneMessageText; // 비석 메시지 텍스트 참조
+    public static int SpiderCounter = 0; // 죽인 거미 수
+
+
 
     // Gravestone 오브젝트 참조 추가
     private GameObject gravestone03;
     private GameObject gravestone033;
+
+    [SerializeField] private AudioClip takeDamageSound; // 피격 시 소리
+    [SerializeField][Range(0f, 1f)] private float takeDamageVolume = 1.0f; // 피격 시 소리 볼륨
+
+    [SerializeField] private AudioClip deathSound; // 사망 시 소리
+    [SerializeField][Range(0f, 1f)] private float deathVolume = 1.0f; // 사망 시 소리 볼륨
+
+    [SerializeField] private AudioClip attackSound; // 공격 사운드
+    [SerializeField][Range(0f, 1f)] private float attackSoundVolume = 1.0f; // 공격 사운드 볼륨
 
 
     void Start()
@@ -96,6 +107,8 @@ public class SpiderScript : MonoBehaviour
             Debug.LogError("Canvas not found in Spider prefab!");
         }
 
+
+
         // DayNightCycle 찾기
         dayNightCycle = FindObjectOfType<DayNightCycle>();
         if (dayNightCycle == null)
@@ -117,7 +130,7 @@ public class SpiderScript : MonoBehaviour
             spiderText = spiderTextObject.GetComponent<TextMeshProUGUI>();
             if (spiderText != null)
             {
-                spiderText.text = $"Spider = {totalSpidersKilled}"; // 초기값 설정
+                spiderText.text = $"거미 {GlobalCounter.SpiderCounter}마리 죽임"; // 전역 카운터로 초기값 설정
             }
             else
             {
@@ -146,6 +159,13 @@ public class SpiderScript : MonoBehaviour
                 }
             }
         }
+        // 비석 텍스트 참조
+        GameObject gravestoneMessageObject = GameObject.Find("ETC/Gravestone group/PT_Menhir_Rock_03/Canvas/Text");
+        if (gravestoneMessageObject != null)
+        {
+            gravestoneMessageText = gravestoneMessageObject.GetComponent<TextMeshProUGUI>();
+        }
+
 
     }
 
@@ -266,6 +286,7 @@ public class SpiderScript : MonoBehaviour
             {
                 lastAttackTime = Time.time;
                 animator.SetTrigger("Attack2Trigger");
+                PlaySound(attackSound, attackSoundVolume); // 공격 사운드 재생
 
                 GhostScript playerScript = player.GetComponent<GhostScript>();
                 if (playerScript != null && !playerScript.IsDead()) // 플레이어가 죽지 않았을 때만 공격
@@ -326,6 +347,8 @@ public class SpiderScript : MonoBehaviour
         else
         {
             animator.SetTrigger("TakeDamageTrigger");
+            PlaySound(takeDamageSound, takeDamageVolume); // 피격 시 소리 재생
+
         }
     }
 
@@ -359,46 +382,45 @@ public class SpiderScript : MonoBehaviour
         isDead = true;
         Debug.Log("Spider has died");
         animator.SetTrigger("DeathTrigger");
+        PlaySound(deathSound, deathVolume); // 사망 시 소리 재생
+
 
         if (healthCanvas != null)
         {
             healthCanvas.gameObject.SetActive(false);
         }
 
-
         // 거미 사망 시 카운트 증가 및 텍스트 업데이트
-        totalSpidersKilled++;
+        GlobalCounter.SpiderCounter++; // 전역 카운터 먼저 증가
         UpdateSpiderText();
 
-        // 5마리 이상 죽었을 때 Gravestone 오브젝트 전환
-        if (totalSpidersKilled >= 5)
+        // 5마리 이상 죽었을 때 비석 텍스트 업데이트
+        if (GlobalCounter.SpiderCounter == 15)
         {
-            ToggleGravestoneObjects();
+            UpdateGravestoneMessage();
         }
-
 
         StartCoroutine(RemoveSpiderAfterDeath());
     }
 
-    private void ToggleGravestoneObjects()
+
+    private void UpdateGravestoneMessage()
     {
-        if (gravestone03 != null && gravestone033 != null)
+        if (gravestoneMessageText != null)
         {
-            gravestone03.SetActive(false); // PT_Menhir_Rock_03 비활성화
-            gravestone033.SetActive(true); // PT_Menhir_Rock_033 활성화
-            Debug.Log("PT_Menhir_Rock_03 비활성화, PT_Menhir_Rock_033 활성화 완료");
+            gravestoneMessageText.text = "거미를 15마리 죽였어요!\nF키를 눌러 비석을 활성화하세요!";
         }
     }
-
 
     // Spider 텍스트 업데이트
     private void UpdateSpiderText()
     {
         if (spiderText != null)
         {
-            spiderText.text = $"Spider = {totalSpidersKilled}";
+            spiderText.text = $"거미 {GlobalCounter.SpiderCounter}마리 죽임";
         }
     }
+
 
     private IEnumerator RemoveSpiderAfterDeath()
     {
@@ -412,6 +434,13 @@ public class SpiderScript : MonoBehaviour
         else
         {
             Destroy(gameObject);
+        }
+    }
+    private void PlaySound(AudioClip clip, float volume)
+    {
+        if (clip != null)
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position, volume);
         }
     }
 

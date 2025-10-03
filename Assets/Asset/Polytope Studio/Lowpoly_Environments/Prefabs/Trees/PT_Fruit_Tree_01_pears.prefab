@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2966750739439028892}
   - component: {fileID: 8031637485679984109}
   - component: {fileID: 4389035174409453658}
-  - component: {fileID: 1443931304557793477}
+  - component: {fileID: 7048362919758420516}
   m_Layer: 0
   m_Name: PT_Fruit_Tree_01_pears
   m_TagString: Untagged
@@ -87,7 +87,7 @@ CapsuleCollider:
   m_Height: 5.44
   m_Direction: 1
   m_Center: {x: 0, y: 2.39, z: 0}
---- !u!136 &1443931304557793477
+--- !u!136 &7048362919758420516
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

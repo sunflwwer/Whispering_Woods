@@ -95,7 +95,7 @@ GameObject:
   - component: {fileID: 7929462325123785727}
   - component: {fileID: 2905107983372784782}
   - component: {fileID: 2905922493784983791}
-  - component: {fileID: 9000258832616947091}
+  - component: {fileID: 9137084702566307347}
   m_Layer: 0
   m_Name: PT_Fruit_Tree_01_plums
   m_TagString: Untagged
@@ -171,7 +171,7 @@ CapsuleCollider:
   m_Height: 5.12
   m_Direction: 1
   m_Center: {x: 0, y: 2.07, z: 0}
---- !u!136 &9000258832616947091
+--- !u!136 &9137084702566307347
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

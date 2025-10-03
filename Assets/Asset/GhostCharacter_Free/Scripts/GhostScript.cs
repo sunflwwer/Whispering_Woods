@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI; // 추가
+using UnityEngine.SceneManagement; // 씬 전환을 위한 네임스페이스
+
 
 namespace Sample
 {
@@ -71,12 +73,49 @@ namespace Sample
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
 
+        [SerializeField] private GameObject gameOverPanel; // 게임 오버 패널 참조
+        [SerializeField] private GameObject uiCanvas; // 전체 UI Canvas 참조
+
+        [SerializeField] private DayNightCycle dayNightCycle; // DayNightCycle 스크립트 참조
+
+        [SerializeField] private GameObject successFadeImage; // 성공 페이드 이미지 참조
+        [SerializeField] private TextMeshProUGUI successDayText; // 성공 텍스트 (예: Day 3)
+
+
+        [SerializeField] private AudioClip attackSound; // 공격 사운드 클립
+        private AudioSource audioSource; // 오디오 소스 컴포넌트
+        [SerializeField][Range(0f, 1f)] private float attackVolume = 1.0f; // 공격 사운드 볼륨 조절
+
+        [SerializeField] private AudioClip enterWaterSound; // 물에 들어갈 때 소리
+        [SerializeField][Range(0f, 1f)] private float enterWaterVolume = 1.0f; // 입수 사운드 볼륨
+
+        [SerializeField] private AudioClip exitWaterSound; // 물에서 나올 때 소리
+        [SerializeField][Range(0f, 1f)] private float exitWaterVolume = 1.0f; // 물에서 나올 때 사운드 볼륨
+
+        [SerializeField] private AudioClip surprisedSound; // 놀라는 애니메이션 소리
+        [SerializeField][Range(0f, 1f)] private float surprisedVolume = 1.0f; // 놀라는 소리 볼륨
+
+        [SerializeField] private AudioClip deathSound; // 사망 시 재생할 소리
+        [SerializeField][Range(0f, 1f)] private float deathVolume = 1.0f; // 사망 소리 볼륨
+
+        [SerializeField] private AudioClip gameClearSound; // 게임 클리어 사운드
+        [SerializeField][Range(0f, 1f)] private float gameClearVolume = 1.0f; // 게임 클리어 사운드 볼륨
 
 
         void Start()
         {
+
+            // 씬 시작 시 모든 전역 변수 초기화
+            GlobalCounter.ResetCounters();
+
             Anim = this.GetComponent<Animator>();
             Ctrl = this.GetComponent<CharacterController>();
+
+            // 오디오 소스 초기화
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false; // 자동 재생 비활성화
+            audioSource.spatialBlend = 1.0f; // 3D 사운드 적용
+            audioSource.volume = 1.0f; // 기본 볼륨 설정
 
             initialPosition = this.transform.position;
             initialRotation = this.transform.rotation;
@@ -86,11 +125,35 @@ namespace Sample
             if (hpSlider != null)
             {
                 hpSlider.maxValue = maxHP;
-                hpSlider.value = HP; // 시작 시 체력 설정
+                hpSlider.value = HP;
+
+                // 초기 체력 색상 설정 (더 진한 그린으로 시작)
+                Image fillImage = hpSlider.fillRect.GetComponent<Image>();
+                if (fillImage != null)
+                {
+                    fillImage.color = new Color(0.13f, 0.55f, 0.26f); // 더 진한 초록색 (#228B45)
+                }
             }
+
+            if (gameOverPanel != null)
+            {
+                gameOverPanel.SetActive(false);
+            }
+
+            // 모든 비석이 활성화되었을 때 GameClear 호출
+            GlobalCounter.OnAllGravestonesActivated += GameClear;
 
             Cursor.lockState = CursorLockMode.Locked;
         }
+
+
+
+        // 이벤트 구독 해제 (메모리 누수 방지)
+        void OnDestroy()
+        {
+            GlobalCounter.OnAllGravestonesActivated -= GameClear;
+        }
+
 
 
 
@@ -101,7 +164,7 @@ namespace Sample
             MOVE();
             HandleKeyActions();
             //HandlePush(); // 추가된 돌 밀기 로직
-            Respawn();
+            //Respawn();
             CameraRotation(); // 새로운 카메라 회전 로직
 
             if (HP <= 0 && !DissolveFlg)
@@ -244,29 +307,29 @@ namespace Sample
 
             if (Input.GetMouseButtonDown(0)) // 마우스 왼쪽 버튼으로 공격
             {
-                Anim.CrossFade(AttackState, 0.1f, 0, 0);
+                if (InteractWithFence()) // 문과 상호작용이 성공하면 공격하지 않음
+                {
+                    Debug.Log("Fence interaction detected, skipping attack.");
+                    return; // 공격 애니메이션 실행 X
+                }
 
-                // 플레이어 위치에서 시작
-                Vector3 rayStartPos = transform.position + Vector3.up * 1.0f; // 플레이어 위치에서 조금 위에서 시작 (1.0f 정도)
+                Anim.CrossFade(AttackState, 0.1f, 0, 0); // 공격 애니메이션 실행
+                PlayAttackSound(); // 공격 사운드 재생
 
-                // 플레이어 기준 정면 방향으로 발사
-                Vector3 rayDirection = transform.forward; // 플레이어 기준 정면 방향
+                // 기존 공격 로직 유지
+                float interactionDistance = 5f; // 상호작용 거리
+                Vector3 rayStartPos = transform.position + Vector3.up * 0.8f; // 시작 위치를 살짝 아래로 (1.0 -> 0.8)
+                Vector3 rayDirection = (transform.forward + Vector3.down * 0.1f).normalized; // 살짝 아래로 기울이기
 
-                rayDirection.Normalize(); // 정규화
+                Debug.DrawRay(rayStartPos, rayDirection * interactionDistance, Color.red, 2.0f); // Ray 시각화
 
-                // Ray 거리
-                float rayDistance = 6.0f;
+                // 모든 충돌체에 대해 Raycast 실행 (트리거 포함)
+                RaycastHit[] hits = Physics.RaycastAll(rayStartPos, rayDirection, interactionDistance, ~0, QueryTriggerInteraction.Collide);
 
-                // Debug용 Ray 시각화
-                Debug.DrawRay(rayStartPos, rayDirection * rayDistance, Color.red, 1.0f);
-
-                // RaycastAll 사용 → 트리거까지 감지 가능
-                RaycastHit[] hits = Physics.RaycastAll(rayStartPos, rayDirection, rayDistance);
-
-                // 가장 가까운 거미 한 마리만 공격하기 위해 변수 추가
                 RaycastHit? closestHit = null;
                 float closestDistance = float.MaxValue;
 
+                // SpiderEnemy 태그가 붙은 오브젝트 중 가장 가까운 것을 찾기
                 foreach (RaycastHit hit in hits)
                 {
                     if (hit.collider.CompareTag("SpiderEnemy"))
@@ -280,7 +343,7 @@ namespace Sample
                     }
                 }
 
-                // 가장 가까운 거미 한 마리만 공격
+
                 if (closestHit.HasValue)
                 {
                     SpiderScript spider = closestHit.Value.collider.GetComponentInParent<SpiderScript>();
@@ -300,25 +363,33 @@ namespace Sample
                 }
             }
 
-            if (Input.GetKeyDown(KeyCode.Mouse1)) // 마우스 오른쪽 버튼으로 문 회전
+
+/*            if (Input.GetKeyDown(KeyCode.Mouse1)) // 마우스 오른쪽 버튼으로 문 회전
             {
                 InteractWithFence();
                 Debug.Log("InteractWithFence.");
             }
-
+*/
         }
 
-        private void InteractWithFence()
+        private void PlayAttackSound()
         {
-            float interactionDistance = 7.0f; // 문과의 상호작용 거리
-                                              // 플레이어 위치에서 시작
-            Vector3 rayStartPos = transform.position + Vector3.up * 1.0f; // 플레이어 위치에서 조금 위에서 시작 (1.0f 정도)
+            if (attackSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(attackSound, attackVolume); // 볼륨 조절 추가
+            }
+        }
 
-            // 플레이어 기준 정면 방향으로 발사
+
+
+        // InteractWithFence() 메서드를 bool로 변경
+        private bool InteractWithFence()
+        {
+            float interactionDistance = 6.0f; // 문과의 상호작용 거리
+            Vector3 rayStartPos = transform.position + Vector3.up * 1.0f; // 플레이어 위치에서 조금 위에서 시작
             Vector3 rayDirection = transform.forward; // 플레이어 기준 정면 방향
 
-
-            Debug.DrawRay(rayStartPos, rayDirection * interactionDistance, Color.blue, 2.0f); // Ray를 시각적으로 확인
+            Debug.DrawRay(rayStartPos, rayDirection * interactionDistance, Color.blue, 2.0f); // Ray 시각화
 
             RaycastHit[] hits = Physics.RaycastAll(rayStartPos, rayDirection, interactionDistance, ~0, QueryTriggerInteraction.Collide);
 
@@ -327,11 +398,14 @@ namespace Sample
                 if (hit.collider.CompareTag("Fence")) // Fence 태그 감지
                 {
                     Debug.Log("Fence detected, toggling doors...");
-                    DoorScript.ToggleAllDoors(); // 모든 문 동시에 열거나 닫기
-                    return;
+                    DoorScript.ToggleAllDoors(); // 모든 문 열기/닫기
+                    return true; // 상호작용 성공 시 true 반환
                 }
             }
+
+            return false; // 상호작용 실패 시 false 반환
         }
+
 
 
 
@@ -348,7 +422,9 @@ namespace Sample
             {
                 // 놀라는 애니메이션 실행 (죽지 않은 경우)
                 Anim.CrossFade(SurprisedState, 0.1f, 0, 0);
+                PlaySound(surprisedSound, surprisedVolume); // 놀라는 소리 재생
             }
+
             else
             {
                 // HP가 0이면 사망 처리
@@ -358,21 +434,76 @@ namespace Sample
         }
 
 
-
         private void Die()
         {
             isDead = true;
 
             Debug.Log("Player has died!");
             Anim.CrossFade(DissolveState, 0.1f, 0, 0); // 사망 애니메이션 실행
+            PlaySound(deathSound, deathVolume); // 사망 소리 재생
 
             // 이동 및 피격 불가 처리
             Ctrl.enabled = false;
             GetComponent<Collider>().enabled = false;
 
-            // 1초 후 Dissolve 효과 실행
+            // DayNightCycle의 텍스트 동기화 중지
+            if (dayNightCycle != null)
+            {
+                dayNightCycle.StopDaySync();
+            }
+
+            // UI 비활성화 및 게임 오버 패널 활성화
+            if (uiCanvas != null)
+            {
+                foreach (Transform child in uiCanvas.transform)
+                {
+                    child.gameObject.SetActive(false); // 모든 UI 요소 비활성화
+                }
+            }
+
+            if (gameOverPanel != null)
+            {
+                StartCoroutine(FadeInGameOverPanel()); // 페이드인 코루틴 시작
+            }
+
+            // 커서 락 해제 및 보이게 설정
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
             StartCoroutine(WaitBeforeDissolve());
         }
+
+
+        // 게임 오버 패널 페이드인 코루틴
+        private IEnumerator FadeInGameOverPanel()
+        {
+            gameOverPanel.SetActive(true); // 게임 오버 패널 활성화
+
+            CanvasGroup canvasGroup = gameOverPanel.GetComponent<CanvasGroup>();
+            if (canvasGroup != null)
+            {
+                canvasGroup.interactable = true;
+                canvasGroup.blocksRaycasts = true;
+                canvasGroup.alpha = 0f; // 시작 시 투명
+
+                float duration = 1f; // 페이드인 지속 시간 (1초)
+                float elapsedTime = 0f;
+
+                while (elapsedTime < duration)
+                {
+                    elapsedTime += Time.deltaTime;
+                    canvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsedTime / duration); // 점진적 투명도 증가
+                    yield return null;
+                }
+
+                canvasGroup.alpha = 1f; // 완전히 보이게 설정
+            }
+        }
+
+
+
+
+
 
         // 1초 대기 후 Dissolve 효과 실행
         private IEnumerator WaitBeforeDissolve()
@@ -511,7 +642,7 @@ namespace Sample
         }
 
 
-        private void Respawn()
+/*        private void Respawn()
         {
             if (Input.GetKeyDown(KeyCode.R)) // R키를 누르면 리스폰 가능
             {
@@ -542,7 +673,7 @@ namespace Sample
                 isDead = false; // 다시 살아남
                 Debug.Log("Player respawned at initial position with HP: " + HP);
             }
-        }
+        }*/
 
 
         public bool IsDead()
@@ -569,8 +700,64 @@ namespace Sample
             if (hpSlider != null)
             {
                 hpSlider.value = HP; // 슬라이더로 체력 업데이트
+
+                // 체력 비율 계산 (0 ~ 1)
+                float hpPercent = (float)HP / maxHP;
+
+                // Fill 색상 업데이트
+                Image fillImage = hpSlider.fillRect.GetComponent<Image>();
+                if (fillImage != null)
+                {
+                    Color fillColor;
+
+                    // 체력 구간에 따른 더 진한 파스텔톤 색상 그라데이션 적용
+                    if (hpPercent > 0.7f)
+                    {
+                        // 더 진한 초록색 (#228B45) → 진한 옐로우 (#FFCC00)
+                        fillColor = Color.Lerp(
+                            new Color(1f, 0.8f, 0f), // 진한 옐로우
+                            new Color(0.13f, 0.55f, 0.26f), // 더 진한 초록색
+                            (hpPercent - 0.7f) / 0.3f
+                        );
+                    }
+
+                    else if (hpPercent > 0.4f)
+                    {
+                        // 진한 옐로우 (#FFCC00) → 진한 오렌지 (#FF8C00)
+                        fillColor = Color.Lerp(
+                            new Color(1f, 0.55f, 0f), // 진한 오렌지
+                            new Color(1f, 0.8f, 0f), // 진한 옐로우
+                            (hpPercent - 0.4f) / 0.3f
+                        );
+                    }
+                    else if (hpPercent > 0.1f)
+                    {
+                        // 진한 오렌지 (#FF8C00) → 진한 레드 (#CC3333)
+                        fillColor = Color.Lerp(
+                            new Color(0.8f, 0.2f, 0.2f), // 진한 레드
+                            new Color(1f, 0.55f, 0f), // 진한 오렌지
+                            (hpPercent - 0.1f) / 0.3f
+                        );
+                    }
+                    else
+                    {
+                        // 진한 레드 (#CC3333) → 어두운 레드 (#800000)
+                        fillColor = Color.Lerp(
+                            new Color(0.5f, 0f, 0f), // 어두운 레드
+                            new Color(0.8f, 0.2f, 0.2f), // 진한 레드
+                            hpPercent / 0.1f
+                        );
+                    }
+
+                    fillImage.color = fillColor;
+                }
             }
         }
+
+
+
+
+
 
 
 
@@ -585,20 +772,22 @@ namespace Sample
                     isInWater = true;
                     Speed *= waterSpeedMultiplier;
                     sprintSpeed *= waterSpeedMultiplier;
+
+                    // 물에 들어갈 때 소리 재생
+                    PlaySound(enterWaterSound, enterWaterVolume);
                 }
             }
 
-/*            // 돌 상호작용
-            if (other.CompareTag("PushableRock"))
-            {
-                currentRock = other.gameObject;
-                Debug.Log($"Entered range of rock: {currentRock.name}");
-            }*/
+            /*            // 돌 상호작용
+                        if (other.CompareTag("PushableRock"))
+                        {
+                            currentRock = other.gameObject;
+                            Debug.Log($"Entered range of rock: {currentRock.name}");
+                        }*/
         }
 
         private void OnTriggerExit(Collider other)
         {
-            // 물 상호작용 해제
             if (other.CompareTag("Water"))
             {
                 Debug.Log("Exited Water Trigger");
@@ -607,17 +796,140 @@ namespace Sample
                     isInWater = false;
                     Speed /= waterSpeedMultiplier;
                     sprintSpeed /= waterSpeedMultiplier;
+
+                    // 물에서 나올 때 소리 재생
+                    PlaySound(exitWaterSound, exitWaterVolume);
                 }
             }
 
-/*            // 돌 상호작용 해제
-            if (other.CompareTag("PushableRock") && currentRock == other.gameObject)
-            {
-                Debug.Log($"Exited range of rock: {currentRock.name}");
-                currentRock = null;
-                isPushing = false;
-            }*/
+            /*            // 돌 상호작용 해제
+                        if (other.CompareTag("PushableRock") && currentRock == other.gameObject)
+                        {
+                            Debug.Log($"Exited range of rock: {currentRock.name}");
+                            currentRock = null;
+                            isPushing = false;
+                        }*/
         }
+
+        private void PlaySound(AudioClip clip, float volume)
+        {
+            if (audioSource != null && clip != null)
+            {
+                audioSource.PlayOneShot(clip, volume); // 지정된 볼륨으로 소리 재생
+            }
+        }
+
+
+        private void GameClear()
+        {
+            isDead = true;
+
+            Debug.Log("Game Clear!"); // 게임 클리어 로그
+
+            // GameClear 사운드 재생
+            PlaySound(gameClearSound, gameClearVolume);
+
+            // 이동 및 피격 불가 처리
+            Ctrl.enabled = false;
+            GetComponent<Collider>().enabled = false;
+
+            // DayNightCycle의 텍스트 동기화 중지
+            if (dayNightCycle != null)
+            {
+                dayNightCycle.StopDaySync();
+            }
+
+            // UI 비활성화
+            if (uiCanvas != null)
+            {
+                foreach (Transform child in uiCanvas.transform)
+                {
+                    child.gameObject.SetActive(false); // 모든 UI 요소 비활성화
+                }
+            }
+
+            // Dissolve 효과 완료 후 Success Fade Image 활성화 시작
+            StartCoroutine(WaitBeforeDissolveAndShowSuccessImage());
+
+            // 커서 락 해제 및 보이게 설정
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+
+        // 1초 대기 후 Dissolve 효과 실행 및 Success Fade Image 활성화
+        private IEnumerator WaitBeforeDissolveAndShowSuccessImage()
+        {
+            yield return new WaitForSeconds(1.0f); // 1초 대기
+            yield return StartCoroutine(DissolveEffect()); // Dissolve 효과 실행
+            yield return StartCoroutine(FadeInSuccessImage()); // Success Fade Image 페이드인
+
+            yield return new WaitForSeconds(2.0f); // 페이드인 후 2초 유지
+            yield return StartCoroutine(FadeOutSuccessDayText()); // Day 텍스트 서서히 사라지기
+
+            yield return new WaitForSeconds(1.0f); // 텍스트 사라진 후 1초 대기
+            LoadEndingScene(); // Ending Scene으로 전환
+        }
+
+
+        // 성공 페이드 이미지 서서히 나타나기
+        private IEnumerator FadeInSuccessImage()
+        {
+            if (successFadeImage != null)
+            {
+                successFadeImage.SetActive(true); // 이미지 활성화
+
+                CanvasGroup canvasGroup = successFadeImage.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    canvasGroup.interactable = true;
+                    canvasGroup.blocksRaycasts = true;
+                    canvasGroup.alpha = 0f; // 시작 시 투명
+
+                    float duration = 1f; // 1초 동안 페이드인
+                    float elapsedTime = 0f;
+
+                    while (elapsedTime < duration)
+                    {
+                        elapsedTime += Time.deltaTime;
+                        canvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsedTime / duration); // 서서히 투명도 증가
+                        yield return null;
+                    }
+
+                    canvasGroup.alpha = 1f; // 완전하게 보이도록 설정
+                }
+            }
+        }
+
+        // Day 텍스트 서서히 사라지기
+        private IEnumerator FadeOutSuccessDayText()
+        {
+            if (successDayText != null)
+            {
+                float duration = 1f; // 1초 동안 페이드 아웃
+                float elapsedTime = 0f;
+
+                Color textColor = successDayText.color;
+                textColor.a = 1f; // 시작 시 완전히 보이게 설정
+
+                while (elapsedTime < duration)
+                {
+                    elapsedTime += Time.deltaTime;
+                    textColor.a = Mathf.Lerp(1f, 0f, elapsedTime / duration); // 알파값 점진적으로 감소
+                    successDayText.color = textColor;
+                    yield return null;
+                }
+
+                textColor.a = 0f; // 완전히 사라지도록 설정
+                successDayText.color = textColor;
+            }
+        }
+
+        private void LoadEndingScene()
+        {
+            SceneManager.LoadScene("Ending Scene"); // EndingScene으로 씬 전환
+        }
+
 
     }
 }

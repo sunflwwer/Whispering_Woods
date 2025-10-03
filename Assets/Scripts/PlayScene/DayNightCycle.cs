@@ -7,7 +7,11 @@ public class DayNightCycle : MonoBehaviour
     public Light moonLight; // 달 라이트 (MoonLight)
     public Material skyboxMaterial; // Skybox Material (셰이더 적용된 머티리얼)
     public float dayDuration = 20f; // 하루 시간 (초 단위)
+
     public TMP_Text dayText; // Canvas의 Day 텍스트 (TextMeshPro)
+    public TMP_Text gameOverDayText; // GameOverPanel 내 Day 텍스트
+    public TMP_Text extraDayText; // 추가된 날짜 텍스트
+
     public Color dayFogColor = Color.cyan; // 낮의 Fog 색상
     public Color nightFogColor = new Color(0.05f, 0.05f, 0.2f); // 밤의 Fog 색상 (짙은 남색)
 
@@ -18,6 +22,18 @@ public class DayNightCycle : MonoBehaviour
     private bool isEvening = false; // 저녁 상태
 
     public bool IsEvening => isEvening; // 외부에서 저녁 상태를 확인하는 프로퍼티
+
+    private bool stopDaySync = false; // 플레이어 사망 시 동기화 중지 여부
+
+    [Header("BGM Clips")]
+    public AudioClip morningBGM; // 아침 배경음
+    public AudioClip eveningBGM; // 저녁 배경음
+    private AudioSource bgmSource; // 배경음 재생용 AudioSource
+
+    [Header("Audio Volume Settings")]
+    [Range(0f, 1f)] public float morningVolume = 1f; // 아침 BGM 볼륨
+    [Range(0f, 1f)] public float eveningVolume = 1f; // 저녁 BGM 볼륨
+
 
     void Start()
     {
@@ -32,12 +48,6 @@ public class DayNightCycle : MonoBehaviour
             Debug.LogError("Skybox Material is not assigned!");
             return;
         }
-/*
-        if (dayText == null)
-        {
-            //Debug.LogError("Day Text (TMP_Text) is not assigned!");
-            return;
-        }*/
 
         rotationSpeed = 360f / dayDuration;
 
@@ -46,10 +56,18 @@ public class DayNightCycle : MonoBehaviour
 
         RenderSettings.fogColor = dayFogColor;
         UpdateDayText();
+
+        // 배경음 설정
+        bgmSource = gameObject.AddComponent<AudioSource>();
+        bgmSource.loop = true;
+        PlayMorningBGM(); // 시작 시 아침 BGM 재생
     }
+
 
     void Update()
     {
+        if (stopDaySync) return; // 플레이어 사망 시 동기화 중지
+
         float deltaRotation = rotationSpeed * Time.deltaTime;
 
         // 태양과 달 회전
@@ -75,6 +93,27 @@ public class DayNightCycle : MonoBehaviour
         }
     }
 
+
+    private void PlayMorningBGM()
+    {
+        if (bgmSource.clip != morningBGM && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.FadeBGM(bgmSource, morningBGM, 3f); // 3초 페이드
+            bgmSource.volume = morningVolume; // 인스펙터에서 설정한 아침 볼륨 적용
+        }
+    }
+
+    private void PlayEveningBGM()
+    {
+        if (bgmSource.clip != eveningBGM && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.FadeBGM(bgmSource, eveningBGM, 3f); // 3초 페이드
+            bgmSource.volume = eveningVolume; // 인스펙터에서 설정한 저녁 볼륨 적용
+        }
+    }
+
+
+
     private void UpdateLightIntensities()
     {
         float sunHeight = Vector3.Dot(directionalLight.transform.forward, Vector3.down);
@@ -90,17 +129,45 @@ public class DayNightCycle : MonoBehaviour
         RenderSettings.fogColor = Color.Lerp(nightFogColor, dayFogColor, fogLerpValue);
     }
 
+    // 모든 Day 텍스트를 동기화
     private void UpdateDayText()
     {
-        dayText.text = $"Day {currentDay}";
+        if (stopDaySync) return; // 플레이어 사망 시 동기화 중지
+
+        dayText.text = $"{currentDay}일차";
+
+        if (gameOverDayText != null)
+        {
+            gameOverDayText.text = $"{currentDay}일차에 유령이 쓰러졌습니다!";
+        }
+
+        if (extraDayText != null)
+        {
+            extraDayText.text = $"{currentDay}일차에 모든 비석이 활성화되었습니다!"; // 추가된 날짜 텍스트 업데이트
+        }
     }
 
     private void UpdateEveningStatus()
     {
-        // 태양의 X 축 회전 각도를 기준으로 저녁 상태를 판단
         float sunRotationX = directionalLight.transform.eulerAngles.x;
 
-        // 저녁은 태양이 180° ~ 360°일 때
+        bool wasEvening = isEvening;
         isEvening = sunRotationX >= 180f && sunRotationX < 360f;
+
+        // 저녁 상태가 바뀔 때만 BGM 전환
+        if (isEvening && !wasEvening)
+        {
+            PlayEveningBGM();
+        }
+        else if (!isEvening && wasEvening)
+        {
+            PlayMorningBGM();
+        }
+    }
+
+
+    public void StopDaySync()
+    {
+        stopDaySync = true; // 플레이어가 죽으면 동기화 중지
     }
 }

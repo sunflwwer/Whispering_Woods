@@ -457,12 +457,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39bd627f95fe1bb44ace042126675a19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 1.5
+  moveSpeed: 5
   attackRange: 1.5
-  detectRange: 50
-  attackDamage: 1
+  detectRange: 60
+  attackDamage: 100
   attackCooldown: 2
   repulsionForce: 0
+  takeDamageSound: {fileID: 8300000, guid: 137bb003119aa47dfb5ed791d840d650, type: 3}
+  takeDamageVolume: 1
+  deathSound: {fileID: 8300000, guid: 931523c039e8648f2ae2785389e68571, type: 3}
+  deathVolume: 1
+  attackSound: {fileID: 8300000, guid: c5e72c14120434b7d8c3248afc4851b6, type: 3}
+  attackSoundVolume: 0.8
 --- !u!136 &7461206422540065197
 CapsuleCollider:
   m_ObjectHideFlags: 0

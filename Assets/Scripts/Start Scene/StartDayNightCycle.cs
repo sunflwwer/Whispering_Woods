@@ -17,6 +17,16 @@ public class StartDayNightCycle : MonoBehaviour
 
     public bool IsEvening => isEvening; // 외부에서 저녁 상태를 확인하는 프로퍼티
 
+    [Header("BGM Clips")]
+    public AudioClip morningBGM; // 아침 배경음
+    public AudioClip eveningBGM; // 저녁 배경음
+    private AudioSource bgmSource; // 배경음 재생용 AudioSource
+
+    [Header("Audio Volume Settings")]
+    [Range(0f, 1f)] public float morningVolume = 1f; // 아침 BGM 볼륨
+    [Range(0f, 1f)] public float eveningVolume = 1f; // 저녁 BGM 볼륨
+
+
     void Start()
     {
         if (directionalLight == null || moonLight == null)
@@ -37,6 +47,11 @@ public class StartDayNightCycle : MonoBehaviour
         moonLight.transform.rotation = Quaternion.Euler(-180f, 0f, 0f);
 
         RenderSettings.fogColor = dayFogColor;
+
+        // 배경음 설정
+        bgmSource = gameObject.AddComponent<AudioSource>();
+        bgmSource.loop = true;
+        PlayMorningBGM(); // 시작 시 아침 BGM 재생
     }
 
     void Update()
@@ -82,10 +97,41 @@ public class StartDayNightCycle : MonoBehaviour
 
     private void UpdateEveningStatus()
     {
-        // 태양의 X 축 회전 각도를 기준으로 저녁 상태를 판단
         float sunRotationX = directionalLight.transform.eulerAngles.x;
 
-        // 저녁은 태양이 180° ~ 360°일 때
+        bool wasEvening = isEvening;
         isEvening = sunRotationX >= 180f && sunRotationX < 360f;
+
+        // 저녁 상태가 바뀔 때만 BGM 전환
+        if (isEvening && !wasEvening)
+        {
+            PlayEveningBGM();
+        }
+        else if (!isEvening && wasEvening)
+        {
+            PlayMorningBGM();
+        }
     }
+
+
+    private void PlayMorningBGM()
+    {
+        if (bgmSource.clip != morningBGM && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.FadeBGM(bgmSource, morningBGM, 3f); // 3초 페이드
+            bgmSource.volume = morningVolume; // 인스펙터에서 설정한 아침 볼륨 적용
+        }
+    }
+
+    private void PlayEveningBGM()
+    {
+        if (bgmSource.clip != eveningBGM && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.FadeBGM(bgmSource, eveningBGM, 3f); // 3초 페이드
+            bgmSource.volume = eveningVolume; // 인스펙터에서 설정한 저녁 볼륨 적용
+        }
+    }
+
+
+
 }
