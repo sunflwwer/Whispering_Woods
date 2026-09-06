@@ -34,5 +34,5 @@
 ## 🔗 참고 링크
 
 - [GitHub](https://github.com/sunflwwer/Whispering_Woods.git)
-- [프로젝트 노션](https://app.notion.com/p/Whispering-Woods-1814ceab4f828119af92cd5bacb720c8?source=copy_link)
+- [프로젝트 노션](https://app.notion.com/p/Whispering-Woods-1814ceab4f8281958ef9e606dfc17988?source=copy_link)
 - [빌드 파일 다운로드](https://drive.google.com/file/d/19X-dMXsv7HKCHjN-6B6_ltedvZxV4hB4/view?usp=sharing)
